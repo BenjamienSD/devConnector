@@ -16,7 +16,6 @@ const UserSchema = new Schema({
   },
   avatar: {
     type: String,
-    required: true,
   },
   date: {
     type: Date,
@@ -25,5 +24,5 @@ const UserSchema = new Schema({
 });
 
 // User is the variable
-//TODO users is the name we want to use ??
+//TODO 'users' is the name we want to use ??
 module.exports = User = mongoose.model('users', UserSchema);
