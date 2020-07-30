@@ -5,9 +5,9 @@ const express = require('express');
 const mongoose = require('mongoose');
 
 // bring in routes
-const users = require('./routes/api/users');
-const profile = require('./routes/api/profile');
-const posts = require('./routes/api/posts');
+const users = require('./routes/api/usersRoute');
+const profile = require('./routes/api/profileRoute');
+const posts = require('./routes/api/postsRoute');
 
 const app = express();
 
@@ -24,9 +24,9 @@ mongoose
 app.get('/', (req, res) => res.send('Hello'));
 
 // configure app to use the provided routes
-app.use('/api/users', users);
-app.use('/api/profile', profile);
-app.use('/api/posts', posts);
+app.use('/api/usersRoute', users);
+app.use('/api/profileRoute', profile);
+app.use('/api/postsRoute', posts);
 
 // production || development
 const port = process.env.PORT || 5000;
