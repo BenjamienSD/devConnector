@@ -1,42 +1,46 @@
-## Initialize npm
+# Initialize npm
 
 terminal:  
 `npm init`
 
 creates package.json
 
-## Install dependencies
+# Install dependencies
 
 terminal:  
 `npm i express mongoose passport-jwt jsonwebtoken body-parser bcryptjs validator`
 
-- express: main framework
-- mongoose: connect app to mongoDB
+- express: web framework for node.js
+- mongoose: connects app to mongoDB
 - passport-jwt: authentication
 - jsonwebtoken: generate tokens
 - body-parser: take in data through requests
 - bcryptjs: encryption
-- validator: validations
+- validator: handles validations
 
-## Install dev-dependencies
+# Install dev-dependencies
 
 terminal:  
 `npm i -D nodemon`
 
 nodemon: watches node application and update on change
 
-## Add scripts
+# Add scripts
 
 `/package.json`
 
 ```json
+. . .
+
 "scripts": {
   "start": "node server.js",
   "server": "nodemon server.js"
 },
+
+. . .
 ```
 
-## Set up the server
+# Set up the server
 
 `/server.js`
 
@@ -82,7 +86,7 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => console.log(`Server running on port ${port}`));
 ```
 
-## Connect to mongoDB with mongoose
+# Connect to mongoDB with mongoose
 
 `/config/keys.js`
 
@@ -93,7 +97,7 @@ module.exports = {
 };
 ```
 
-## Set up routes with express router
+# Set up routes with express router
 
 `/routes/api/usersRoute.js`
 
@@ -116,7 +120,7 @@ module.exports = router;
 
 The same for `/routes/api/postsRoute.js` and `/routes/api/profileRoute.js`
 
-## Creating the user model
+# Creating the user model
 
 Sort of like a template of what data is needed to create a user
 
@@ -153,9 +157,9 @@ const UserSchema = new Schema({
 module.exports = User = mongoose.model('users', UserSchema);
 ```
 
-## User registration, importing gravatar and using http client Postman
+# User registration, importing gravatar and using http client Postman
 
-`/routes/api/profileRoute.js`
+`/routes/api/usersRoute.js`
 
 terminal:  
 `npm i gravatar`
@@ -164,7 +168,7 @@ terminal:
 
 const gravatar = require('gravatar')
 
-...
+. . .
 
 // @route   POST api/users/register
 // @desc    registers a user
@@ -218,6 +222,20 @@ bcrypt.genSalt(10, (err, salt) => {
 });
 ```
 
+## Postman
+
+Now in Postman we can make a request to `http://localhost:5000/api/users/register` with the body
+
+```json
+{
+  "name": "Some Name",
+  "email": "someemail@gmail.com",
+  "password": "somepassword"
+}
+```
+
+and register a user.
+
 ## The story far...
 
 - Created a UserModel, a template that determines which types of data a 'user' will be made of, using a mongoose 'Schema'.
@@ -225,7 +243,7 @@ bcrypt.genSalt(10, (err, salt) => {
   Then we added the functionality to register a new user and encrypt the password using bcrypt.
 - In server.js we brought in the usersRoute, connected the database to the app through mongoose, used 'app.use' to connect the 'address' (/api/users) to the 'route' (usersRoute).
 
-## Email, password, login
+# Email, password, login
 
 `/routes/api/usersRoute.js`
 
@@ -262,3 +280,82 @@ router.post('/login', (req, res) => {
 ```
 
 ## creating the JWT
+
+`/config/keys.js`
+
+I'm not entirely sure what putting 'secretOrKey: 'secret'' actually does here...
+
+```jsx
+module.exports = {
+  mongoURI: 'mongodb+srv://. . .'
+  secretOrKey: 'secret',
+};
+```
+
+`/routes/api/usersRoute.js`
+
+jwt.sign(payload, key, expiration, callback)
+
+```jsx
+// bring in jsonwebtoken
+const jwt = require('jsonwebtoken');
+
+// bring in secret
+const keys = require('../../config/keys')
+
+. . .
+
+// @route   POST api/users/login
+// @desc    Login user / return JsonWebToken
+// @access  Public
+router.post('/login', (req, res) => {
+
+  . . .
+
+    bcrypt.compare(password, user.password).then((isMatch) => {
+      // deconstruct user
+      const { id, name, avatar } = user;
+      // if password match, create JWT payload, generate token
+      if (isMatch) {
+        const payload = { id, name, avatar };
+        // sign token
+          jwt.sign(
+          payload,
+          keys.secretOrKey,
+          { expiresIn: 14400 },
+          (err, token) => {
+            res.json({
+              success: true,
+              token: 'Bearer ' + token,
+            });
+          }
+        );
+      } else {
+        // else return error
+        return res.status(400).json({ password: 'Password does not match' });
+      }
+    });
+  });
+```
+
+now in Postman we can make a request to `http://localhost:5000/api/users/login` with the body
+
+```json
+{
+  "email": "someemail@gmail.com",
+  "password": "somepassword"
+}
+```
+
+and provided the user exists and the passwords match, we receive the following:
+
+```json
+{
+  "success": true,
+  "token": "Bearer eyJhbGciOiJI . . ."
+}
+```
+
+Now we can take this token and put it in the header as an authorization.
+
+## Implementing Passport

@@ -13,6 +13,12 @@ const gravatar = require('gravatar');
 // bring in bcrypt
 const bcrypt = require('bcryptjs');
 
+// bring in jsonwebtoken
+const jwt = require('jsonwebtoken');
+
+// bring in secret
+const keys = require('../../config/keys');
+
 // test route, please ignore
 // @route   GET api/users/test
 // @desc    Tests the route
@@ -65,6 +71,7 @@ router.post('/login', (req, res) => {
   // get the email and password from the request body
   const email = req.body.email;
   const password = req.body.password;
+
   // find user by email (promise)
   User.findOne({ email }).then((user) => {
     // if no user, return 'not found' + error message
@@ -73,9 +80,22 @@ router.post('/login', (req, res) => {
     }
     // if user, check password using bcrypt.compare(provided password, hashed password in database)
     bcrypt.compare(password, user.password).then((isMatch) => {
-      // if password match, generate token
+      const { id, name, avatar } = user;
+      // if password match, create JWT payload, generate token
       if (isMatch) {
-        res.json({ msg: 'Passwords match' });
+        const payload = { id, name, avatar };
+        // sign token
+        jwt.sign(
+          payload,
+          keys.secretOrKey,
+          { expiresIn: 14400 },
+          (err, token) => {
+            res.json({
+              success: true,
+              token: 'Bearer ' + token,
+            });
+          }
+        );
       } else {
         // else return error
         return res.status(400).json({ password: 'Password does not match' });
