@@ -22,13 +22,14 @@ router.get('/test', (req, res) => res.json({ msg: 'users route works' }));
 // @route   POST api/users/register
 // @desc    registers a user
 // @access  Public
+
+// check if user exists by looking for existing email
+// if it exists, return invalid request
+// if not, create new user
 router.post('/register', (req, res) => {
-  // check if user exists by looking for existing email
-  // if it exists, return 400
   User.findOne({ email: req.body.email }).then((user) => {
     if (user) {
       return res.status(400).json({ email: 'Email already exists' });
-      // if not, create new user
     } else {
       const avatar = gravatar.url(req.body.email, {
         s: '200', // size
@@ -42,23 +43,44 @@ router.post('/register', (req, res) => {
         password: req.body.password,
       });
 
-      // A salt is random data that is used as an additional input to a one-way function that hashes data, a password or passphrase.
-      // (N° of desired characters for the hash, callback)
-      // .genSalt returns an error if there is one, or a salt
+      // encrypt the password
       bcrypt.genSalt(10, (err, salt) => {
-        // .hash takes in the plaintext password, the salt and a callback
         bcrypt.hash(newUser.password, salt, (err, hash) => {
           if (err) throw err;
-          // now it uses the salt to hash the password
           newUser.password = hash;
           newUser
-            // .Save is mongoose
             .save()
             .then((user) => res.json(user))
             .catch((err) => console.log(error));
         });
       });
     }
+  });
+});
+
+// @route   POST api/users/login
+// @desc    Login user / return JsonWebToken
+// @access  Public
+router.post('/login', (req, res) => {
+  // get the email and password from the request body
+  const email = req.body.email;
+  const password = req.body.password;
+  // find user by email (promise)
+  User.findOne({ email }).then((user) => {
+    // if no user, return 'not found' + error message
+    if (!user) {
+      return res.status(404).json({ email: 'User not found' });
+    }
+    // if user, check password using bcrypt.compare(provided password, hashed password in database)
+    bcrypt.compare(password, user.password).then((isMatch) => {
+      // if password match, generate token
+      if (isMatch) {
+        res.json({ msg: 'Passwords match' });
+      } else {
+        // else return error
+        return res.status(400).json({ password: 'Password does not match' });
+      }
+    });
   });
 });
 
